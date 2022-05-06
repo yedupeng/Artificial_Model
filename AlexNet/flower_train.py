@@ -5,9 +5,12 @@ from torchvision import transforms,datasets
 from torch.utils.data import Dataset
 from flower_model import Alexnet
 import json
+from torch.utils.tensorboard import SummaryWriter
 
 #   调用GPU
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+#   实例化tensorboard对象
+rb_writer = SummaryWriter(log_dir="run/flower_experiment")
 print(device)
 #   图像预处理
 data_transform = {
@@ -24,7 +27,7 @@ data_transform = {
     ])
 }
 #   路径选择
-image_path = "F:\Artificial Intelligence\Git\\Network_Framework\data\\"
+image_path = "E:\Git\Program_Artifical\data\\"
 train_datasets = datasets.ImageFolder(root=image_path+"train",
                                   transform=data_transform["train"]
                                   )
@@ -48,7 +51,9 @@ loss_function = nn.CrossEntropyLoss()
 optimizer = optim.Adam(net.parameters(), lr=0.0002)
 save_path = "./Alex.pth"
 best_acc = 0.0
-
+#  图像预处理  将模型写入tensorboard
+init_image = torch.zeros((1,3,224,224),device = device)
+rb_writer.add_graph(net,init_image)
 for epoch in range(10):
     net.train()
     runnning_loss = 0.0
@@ -81,3 +86,7 @@ for epoch in range(10):
         print("eproch %d train_loss: %.3f  test_acc:%.3f"%
               (epoch+1,runnning_loss/step, acc/val_num))
     print("over!")
+    tags = ["train_loss","accuracy","learning_rate"]
+    rb_writer.add_scalar(tags[0],loss,epoch)
+    rb_writer.add_scalar(tags[1],acc/val_num,epoch)
+    rb_writer.add_scalar(tags[2],optimizer.param_groups[0]["lr"],epoch)
